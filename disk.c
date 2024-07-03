@@ -44,9 +44,11 @@ size_t read_disk_into_memory(size_t id) {
     UINT bytes_read;
     SetBorderColor(0x07);
     f_read(&disk_controller.disks[id].file, disk_buffer, 512, &bytes_read);
+    SpiRamSeqWriteStart(disk_controller.buffer_pointer > 0xFFFF ? 1 : 0, disk_controller.buffer_pointer & 0xFFFF);
     for (int i = 0; i < 512; i++) {
-        SpiRamWriteU8(disk_controller.buffer_pointer > 0xFFFF ? 1 : 0, (disk_controller.buffer_pointer & 0xFFFF) + i, disk_buffer[i]);
+        SpiRamSeqWriteU8(disk_buffer[i]);
     }
+    SpiRamSeqWriteEnd();
     SetBorderColor(0x00);
     return bytes_read;
 }
