@@ -42,10 +42,12 @@ void set_disk_sector(size_t id, uint64_t sector) {
 
 size_t read_disk_into_memory(size_t id) {
     UINT bytes_read;
+    SetBorderColor(0x07);
     f_read(&disk_controller.disks[id].file, disk_buffer, 512, &bytes_read);
     for (int i = 0; i < 512; i++) {
         SpiRamWriteU8(disk_controller.buffer_pointer > 0xFFFF ? 1 : 0, (disk_controller.buffer_pointer & 0xFFFF) + i, disk_buffer[i]);
     }
+    SetBorderColor(0x00);
     return bytes_read;
 }
 
