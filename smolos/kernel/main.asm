@@ -139,9 +139,6 @@ try_startup:
     ifz jmp startup_error
 
 no_other_tasks:
-    ; start the event manager task
-    call start_event_manager_task
-
     ; jump back to it without adding this "task" (not really a task) into the queue.
     ; end_current_task_no_mark_no_free is used specifically because it doesn't mark
     ;   the current task (still set to 0) as unused, and it doesn't free the memory
