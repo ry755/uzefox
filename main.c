@@ -33,7 +33,6 @@ int main() {
     }
 
     ClearVram();
-    SetBorderColor(0xBF);
 
     f_mount(0, &fs);
     new_disk("disk0.img", 0);
