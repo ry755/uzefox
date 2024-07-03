@@ -1,0 +1,14 @@
+
+**/.vscode/
+
+**/bootloader.bin
+**/*.fxf
+**/*.res
+**/bg.inc
+**/bg.raw
+**/icons.inc
+**/fox32os.img
+**/fox32os.img.tmp
+**/romdisk.img
+**/romdisk.img.tmp
+**/startup.bat

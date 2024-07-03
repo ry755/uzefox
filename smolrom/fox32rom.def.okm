@@ -1,0 +1,67 @@
+(* fox32rom routine definitions for Okameron *)
+
+MODULE Fox32ROM;
+    ASM "fox32rom.def";
+    ASM "fox32rom_okm.asm";
+
+    TYPE ROMFile = RECORD
+        disk: CHAR;
+        firstSector: SHORT;
+        seekOffset: INT;
+        reserved: CHAR;
+    END;
+
+    EXTERN EVENT_TYPE_MOUSE_CLICK: INT;
+        EVENT_TYPE_MOUSE_RELEASE: INT;
+        EVENT_TYPE_KEY_DOWN: INT;
+        EVENT_TYPE_KEY_UP: INT;
+        EVENT_TYPE_MENU_BAR_CLICK: INT;
+        EVENT_TYPE_MENU_UPDATE: INT;
+        EVENT_TYPE_MENU_CLICK: INT;
+        EVENT_TYPE_MENU_ACK: INT;
+        EVENT_TYPE_EMPTY: INT;
+
+    EXTERN KEY_CTRL: INT;
+        KEY_LSHIFT: INT;
+        KEY_RSHIFT: INT;
+        KEY_CAPS: INT;
+
+    EXTERN PROCEDURE Panic: INT;
+
+    EXTERN PROCEDURE NewEvent: INT;
+    EXTERN PROCEDURE GetNextEvent: INT;
+    EXTERN PROCEDURE ScancodeToAscii: INT;
+    EXTERN PROCEDURE ShiftPressed: INT;
+    EXTERN PROCEDURE ShiftReleased: INT;
+    EXTERN PROCEDURE CapsPressed: INT;
+
+    EXTERN PROCEDURE FillBackground: INT;
+    EXTERN PROCEDURE DrawStrToBackground: INT;
+    EXTERN PROCEDURE DrawFontTileToBackground: INT;
+    EXTERN PROCEDURE DrawFormatStrToBackground: INT;
+
+    EXTERN PROCEDURE FillOverlay: INT;
+    EXTERN PROCEDURE DrawStrToOverlay: INT;
+    EXTERN PROCEDURE DrawFormatStrToOverlay: INT;
+    EXTERN PROCEDURE DrawFilledRectangleToOverlay: INT;
+
+    EXTERN PROCEDURE RYFSOpen: INT;
+    EXTERN PROCEDURE RYFSSeek: INT;
+    EXTERN PROCEDURE RYFSTell: INT;
+    EXTERN PROCEDURE RYFSRead: INT;
+    EXTERN PROCEDURE RYFSReadWholeFile: INT;
+    EXTERN PROCEDURE RYFSGetSize: INT;
+    EXTERN PROCEDURE RYFSGetFileList: INT;
+    EXTERN PROCEDURE RYFSWrite: INT;
+    EXTERN PROCEDURE RYFSCreate: INT;
+
+    EXTERN PROCEDURE StringToInt: INT;
+
+    EXTERN PROCEDURE CopyMemoryChar: INT;
+    EXTERN PROCEDURE CopyMemoryInt: INT;
+    EXTERN PROCEDURE CopyString: INT;
+    EXTERN PROCEDURE CompareMemoryChar: INT;
+    EXTERN PROCEDURE CompareMemoryInt: INT;
+    EXTERN PROCEDURE CompareString: INT;
+    EXTERN PROCEDURE StringLength: INT;
+END.

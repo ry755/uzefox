@@ -1,0 +1,9 @@
+[submodule "kernel-tools"]
+	path = kernel-tools
+	url = https://github.com/uzebox/uzebox
+[submodule "okameron"]
+	path = okameron
+	url = https://github.com/TalonFloof/okameron
+[submodule "ryfs"]
+	path = ryfs
+	url = https://github.com/ry755/ryfs
