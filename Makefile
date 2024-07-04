@@ -16,7 +16,7 @@ DIRS    = $(OUTDIR) $(OBJDIR) $(DEPDIR)
 ## Kernel settings
 UZEBIN_DIR = kernel-tools/bin
 KERNEL_DIR = kernel-tools/kernel
-KERNEL_OPTIONS = -D_FS_READONLY=0 -DVIDEO_MODE=41 -DINTRO_LOGO=0 -DM40_IBM_ASCII=1 -DSOUND_MIXER=MIXER_TYPE_INLINE
+KERNEL_OPTIONS = -DVIDEO_MODE=41 -DINTRO_LOGO=0 -DM40_IBM_ASCII=1 -DSOUND_MIXER=MIXER_TYPE_INLINE
 
 
 ## Options common to compile, link and assembly rules
@@ -24,7 +24,8 @@ COMMON = -mmcu=$(MCU)
 
 ## Compile options common for all C compilation units.
 CFLAGS  = $(COMMON)
-CFLAGS += -Wall -gdwarf-2 -std=gnu99 -DF_CPU=28636360UL -Os -fsigned-char -ffunction-sections -fno-toplevel-reorder -fno-tree-switch-conversion
+CFLAGS += -Wall -gdwarf-2 -std=gnu99 -DF_CPU=28636360UL -O2 -fsigned-char
+CFLAGS += -ffunction-sections -fno-toplevel-reorder -fno-tree-switch-conversion
 CFLAGS += -MD -MP -MT $(*F).o -MF $(DEPDIR)/$(@F).d
 CFLAGS += $(KERNEL_OPTIONS)
 
@@ -48,10 +49,9 @@ OBJECTS += $(OBJDIR)/uzeboxCore.o
 OBJECTS += $(OBJDIR)/uzeboxSoundEngine.o
 OBJECTS += $(OBJDIR)/uzeboxSoundEngineCore.o
 OBJECTS += $(OBJDIR)/uzeboxVideoEngine.o
+OBJECTS += $(OBJDIR)/bootlib.o
 OBJECTS += $(OBJDIR)/spiram.o
 OBJECTS += $(OBJDIR)/keyboard.o
-OBJECTS += $(OBJDIR)/mmc.o
-OBJECTS += $(OBJDIR)/ff.o
 
 OBJECTS += $(OBJDIR)/$(GAME).o
 OBJECTS += $(OBJDIR)/bus.o
@@ -98,14 +98,11 @@ $(OBJDIR)/uzeboxVideoEngine.o: $(KERNEL_DIR)/uzeboxVideoEngine.c $(DIRS)
 $(OBJDIR)/spiram.o: $(KERNEL_DIR)/spiram.s $(DIRS)
 	$(CC) $(INCLUDES) $(ASMFLAGS) -c $< -o $@
 
+$(OBJDIR)/bootlib.o: $(KERNEL_DIR)/bootlib.s $(DIRS)
+	$(CC) $(INCLUDES) $(ASMFLAGS) -c $< -o $@
+
 $(OBJDIR)/keyboard.o: $(KERNEL_DIR)/keyboard.c $(DIRS)
 	$(CC) $(INCLUDES) $(CFLAGS) -c $< -o $@
-
-$(OBJDIR)/mmc.o: $(KERNEL_DIR)/fatfs/mmc.c $(DIRS)
-	$(CC) $(INCLUDES) $(CFLAGS) -Wno-unused-variable -c $< -o $@
-
-$(OBJDIR)/ff.o: $(KERNEL_DIR)/fatfs/ff.c $(DIRS)
-	$(CC) $(INCLUDES) $(CFLAGS) -Wno-strict-aliasing -c $< -o $@
 
 ## Compile game sources
 $(OBJDIR)/$(GAME).o: main.c $(DIRS)

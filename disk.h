@@ -4,7 +4,7 @@
 #include <fatfs/diskio.h>
 
 typedef struct {
-    FIL file;
+    uint32_t file;
     uint64_t size;
 } disk_t;
 

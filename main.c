@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <avr/pgmspace.h>
 #include <uzebox.h>
+#include <bootlib.h>
 #include <spiram.h>
 
 #include "bus.h"
@@ -11,7 +12,8 @@
 
 fox32_vm_t vm;
 
-extern FATFS fs;
+extern sdc_struct_t sd_struct;
+extern uint8_t disk_buffer[512];
 
 int main() {
     fox32_init(&vm);
@@ -20,6 +22,8 @@ int main() {
     vm.halted = false;
     vm.debug = false;
 
+    sd_struct.bufp = &(disk_buffer[0]);
+    FS_Init(&sd_struct);
     if (!SpiRamInit()) {
         ClearVram();
         SetBorderColor(0xBF);
@@ -34,11 +38,7 @@ int main() {
 
     ClearVram();
 
-    f_mount(0, &fs);
-    new_disk("disk0.img", 0);
-    new_disk("disk1.img", 1);
-    new_disk("disk2.img", 2);
-    new_disk("disk3.img", 3);
+    new_disk("DISK0   IMG", 0);
 
     while (true) {
         uint32_t executed = 0;
