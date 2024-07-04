@@ -2,7 +2,7 @@
 
     org 0x00000800
 
-const LOAD_ADDRESS: 0x00018000
+const LOAD_ADDRESS: 0x00017000
 
     ; fox32rom passed the boot disk id in r0, save it
     mov.8 [boot_disk_id], r0
