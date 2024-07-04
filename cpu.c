@@ -252,6 +252,36 @@ static uint8_t vm_read8(vm_t *vm, uint32_t address) {
             }
             return SpiRamReadU8(bank, (u16) address);
         }
+
+        // special case for the system jump table
+        if (
+            (address >= FOX32_MEMORY_ROM_START + 0x40000) &&
+            (address <= FOX32_MEMORY_ROM_START + 0x40FFF)
+        ) {
+            address -= 0x40000 - 0x3000;
+        }
+        // special case for the disk jump table
+        else if (
+            (address >= FOX32_MEMORY_ROM_START + 0x45000) &&
+            (address <= FOX32_MEMORY_ROM_START + 0x45FFF)
+        ) {
+            address -= 0x45000 - 0x3100;
+        }
+        // special case for the memory jump table
+        else if (
+            (address >= FOX32_MEMORY_ROM_START + 0x46000) &&
+            (address <= FOX32_MEMORY_ROM_START + 0x46FFF)
+        ) {
+            address -= 0x46000 - 0x3200;
+        }
+        // special case for the integer jump table
+        else if (
+            (address >= FOX32_MEMORY_ROM_START + 0x47000) &&
+            (address <= FOX32_MEMORY_ROM_START + 0x47FFF)
+        ) {
+            address -= 0x47000 - 0x3300;
+        }
+
         if (
             (address >= FOX32_MEMORY_ROM_START) &&
             (address -= FOX32_MEMORY_ROM_START) + 1 <= FOX32_MEMORY_ROM
@@ -266,20 +296,9 @@ static uint16_t vm_read16(vm_t *vm, uint32_t address) {
     uint32_t address_end = address + 2;
 
     if (address_end > address) {
-        if (address_end <= FOX32_MEMORY_RAM) {
-            u8 bank = 0;
-            if (address > 0xFFFF) {
-                bank = 1;
-                address &= 0xFFFF;
-            }
-            return SpiRamReadU16(bank, (u16) address);
-        }
-        if (
-            (address >= FOX32_MEMORY_ROM_START) &&
-            (address -= FOX32_MEMORY_ROM_START) + 2 <= FOX32_MEMORY_ROM
-        ) {
-            return pgm_read_word(&(fox32_rom[address]));
-        }
+        uint16_t value = (uint32_t) vm_read8(vm, address) |
+                         (uint32_t) vm_read8(vm, address + 1) << 8;
+        return value;
     }
     vm->exception_operand = address;
     vm_panic(vm, FOX32_ERR_FAULT_RD);
@@ -288,50 +307,11 @@ static uint32_t vm_read32(vm_t *vm, uint32_t address) {
     uint32_t address_end = address + 4;
 
     if (address_end > address) {
-        if (address_end <= FOX32_MEMORY_RAM) {
-            u8 bank = 0;
-            if (address > 0xFFFF) {
-                bank = 1;
-                address &= 0xFFFF;
-            }
-            return SpiRamReadU32(bank, (u16) address);
-        }
-
-        // special case for the system jump table
-        if (
-            (address >= FOX32_MEMORY_ROM_START + 0x40000) &&
-            (address <= FOX32_MEMORY_ROM_START + 0x40FFF)
-        ) {
-            address -= 0x40000 - 0x3000;
-        }
-        // special case for the disk jump table
-        if (
-            (address >= FOX32_MEMORY_ROM_START + 0x45000) &&
-            (address <= FOX32_MEMORY_ROM_START + 0x45FFF)
-        ) {
-            address -= 0x45000 - 0x3100;
-        }
-        // special case for the memory jump table
-        if (
-            (address >= FOX32_MEMORY_ROM_START + 0x46000) &&
-            (address <= FOX32_MEMORY_ROM_START + 0x46FFF)
-        ) {
-            address -= 0x46000 - 0x3200;
-        }
-        // special case for the integer jump table
-        if (
-            (address >= FOX32_MEMORY_ROM_START + 0x47000) &&
-            (address <= FOX32_MEMORY_ROM_START + 0x47FFF)
-        ) {
-            address -= 0x47000 - 0x3300;
-        }
-
-        if (
-            (address >= FOX32_MEMORY_ROM_START) &&
-            (address -= FOX32_MEMORY_ROM_START) + 4 <= FOX32_MEMORY_ROM
-        ) {
-            return pgm_read_dword(&(fox32_rom[address]));
-        }
+        uint32_t value = (uint32_t) vm_read8(vm, address) |
+                         ((uint32_t) vm_read8(vm, address + 1) << 8) |
+                         ((uint32_t) vm_read8(vm, address + 2) << 16) |
+                         ((uint32_t) vm_read8(vm, address + 3) << 24);
+        return value;
     }
     vm->exception_operand = address;
     vm_panic(vm, FOX32_ERR_FAULT_RD);
@@ -346,20 +326,14 @@ static void vm_write8(vm_t *vm, uint32_t address, uint8_t value) {
     SpiRamWriteU8(bank, (u16) address, value);
 }
 static void vm_write16(vm_t *vm, uint32_t address, uint16_t value) {
-    u8 bank = 0;
-    if (address > 0xFFFF) {
-        bank = 1;
-        address &= 0xFFFF;
-    }
-    SpiRamWriteU16(bank, (u16) address, value);
+    vm_write8(vm, address, value & 0xFF);
+    vm_write8(vm, address + 1, value >> 8);
 }
 static void vm_write32(vm_t *vm, uint32_t address, uint32_t value) {
-    u8 bank = 0;
-    if (address > 0xFFFF) {
-        bank = 1;
-        address &= 0xFFFF;
-    }
-    SpiRamWriteU32(bank, (u16) address, value);
+    vm_write8(vm, address, value & 0xFF);
+    vm_write8(vm, address + 1, (value >> 8) & 0xFF);
+    vm_write8(vm, address + 2, (value >> 16) & 0xFF);
+    vm_write8(vm, address + 3, (value >> 24) & 0xFF);
 }
 
 #define VM_PUSH_BODY(_vm_write, _size) \
@@ -940,6 +914,7 @@ static void vm_execute(vm_t *vm) {
         };
 
         default:
+            vm->exception_operand = instr_raw;
             vm_panic(vm, FOX32_ERR_BADOPCODE);
     }
 
