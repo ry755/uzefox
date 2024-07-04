@@ -67,6 +67,7 @@ allocate_memory_bad:
     ; if we reach this point, no good blocks were found
     mov r0, 0
 
+    pop r31
     pop r11
     pop r10
     pop r1
