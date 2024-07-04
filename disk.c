@@ -18,7 +18,7 @@
 
 FATFS fs;
 disk_controller_t disk_controller;
-uint8_t disk_buffer[512];
+uint8_t disk_buffer[256];
 
 extern fox32_vm_t vm;
 
@@ -43,16 +43,33 @@ void set_disk_sector(size_t id, uint64_t sector) {
 size_t read_disk_into_memory(size_t id) {
     UINT bytes_read;
     SetBorderColor(0x07);
-    f_read(&disk_controller.disks[id].file, disk_buffer, 512, &bytes_read);
+    f_read(&disk_controller.disks[id].file, disk_buffer, 256, &bytes_read);
     SpiRamSeqWriteStart(disk_controller.buffer_pointer > 0xFFFF ? 1 : 0, disk_controller.buffer_pointer & 0xFFFF);
-    for (int i = 0; i < 512; i++) {
-        SpiRamSeqWriteU8(disk_buffer[i]);
-    }
+    for (int i = 0; i < 256; i++) SpiRamSeqWriteU8(disk_buffer[i]);
+    SpiRamSeqWriteEnd();
+    f_read(&disk_controller.disks[id].file, disk_buffer, 256, &bytes_read);
+    SpiRamSeqWriteStart(disk_controller.buffer_pointer > 0xFFFF ? 1 : 0, (disk_controller.buffer_pointer + 256) & 0xFFFF);
+    for (int i = 0; i < 256; i++) SpiRamSeqWriteU8(disk_buffer[i]);
     SpiRamSeqWriteEnd();
     SetBorderColor(0x00);
-    return bytes_read;
+    return 512;
 }
 
 size_t write_disk_from_memory(size_t id) {
-    // TODO: write this
+    UINT bytes_written;
+    SetBorderColor(0x30);
+    SpiRamSeqReadStart(disk_controller.buffer_pointer > 0xFFFF ? 1 : 0, disk_controller.buffer_pointer & 0xFFFF);
+    for (int i = 0; i < 256; i++) disk_buffer[i] = SpiRamSeqReadU8();
+    SpiRamSeqReadEnd();
+    f_write(&disk_controller.disks[id].file, disk_buffer, 256, &bytes_written);
+    SpiRamSeqReadStart(disk_controller.buffer_pointer > 0xFFFF ? 1 : 0, (disk_controller.buffer_pointer + 256) & 0xFFFF);
+    for (int i = 0; i < 256; i++) disk_buffer[i] = SpiRamSeqReadU8();
+    SpiRamSeqReadEnd();
+    f_write(&disk_controller.disks[id].file, disk_buffer, 256, &bytes_written);
+    SetBorderColor(0x00);
+    return 512;
+}
+
+DWORD get_fattime(void) {
+    return 0;
 }

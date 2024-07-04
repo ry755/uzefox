@@ -50,7 +50,7 @@ static void print_char(u8 c) {
                 break;
             case 0xF2:
                 // set color
-                if (param_0 & 0xF0 == 0x70)
+                if ((param_0 & 0xF0) == 0x70)
                     color = 0xFF;
                 else
                     color = (param_0 & 0xF0) * 2;
