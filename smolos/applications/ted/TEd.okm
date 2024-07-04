@@ -62,17 +62,20 @@ MODULE TEd;
         WHILE running DO
             read(1, terminalStreamPtr, PTROF(charBuffer));
             IF (insertMode) & (charBuffer # 0) THEN
-                IF charBuffer = 27 THEN
+                IF (charBuffer = 27) OR (charBuffer = 6) THEN
                     insertMode := 0;
                     DrawStatusBar();
+                    RefreshScreen();
                 ELSIF charBuffer = 8 THEN
                     RemoveCharacter();
+                    DrawCurrentRow();
                 ELSIF charBuffer = 10 THEN
                     InsertNewLine();
+                    RefreshScreen();
                 ELSE
                     InsertCharacter(charBuffer);
+                    DrawCurrentRow();
                 END;
-                RefreshScreen();
             ELSE
                 IF charBuffer = 113 THEN
                     (* 'q' pressed, exit *)
@@ -179,6 +182,49 @@ MODULE TEd;
         END;
     END;
 
+    PROCEDURE DrawCurrentRow();
+    VAR y: INT;
+        length: INT;
+        rowAt: POINTER TO Row;
+        fileRow: INT;
+    BEGIN
+        PrintChar(MOVE_CURSOR);
+        PrintChar(0);
+        PrintChar(cursorY - rowOffset);
+
+        y := cursorY - rowOffset;
+        fileRow := y + rowOffset;
+        IF fileRow >|= numberOfRows THEN
+            (* fill line with spaces *)
+            PrintChar(FILL_LINE);
+            PrintChar(020H);
+            PrintChar(000H);
+            (* print tilde *)
+            PrintChar(126);
+        ELSE
+            (* fill line with spaces *)
+            PrintChar(FILL_LINE);
+            PrintChar(020H);
+            PrintChar(000H);
+            rowAt := row + (ROW_RECORD_SIZE * fileRow);
+            length := rowAt^.size - colOffset;
+            IF length & 080000000H THEN
+                length := 0;
+            END;
+            IF length >| 39 THEN
+                length := 39;
+            END;
+            PrintChars(rowAt^.characters + colOffset, length);
+            IF (y = cursorY - rowOffset) AND (cursorShowing <| 1024) THEN
+                PrintChar(MOVE_CURSOR);
+                PrintChar(cursorX - colOffset);
+                PrintChar(cursorY - rowOffset);
+                PrintChar(08AH);
+                PrintChar(008H);
+            END;
+        END;
+    END;
+
     PROCEDURE DrawRows();
     VAR y: INT;
         length: INT;
@@ -219,7 +265,6 @@ MODULE TEd;
             END;
 
             PrintChar(10);
-            save_state_and_yield_task();
             y := y + 1;
         END;
     END;

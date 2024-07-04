@@ -77,7 +77,7 @@ static void print_char(u8 c) {
             case 0x8A:
                 // cursor
                 aram[y * SCREEN_TILES_H + x] = color;
-                PrintChar(x++, y, '_');
+                PrintChar(x++, y, 0xB1);
                 break;
             case 0xF0:
             case 0xF1:

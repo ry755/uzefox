@@ -42,7 +42,7 @@ int main() {
 
     while (true) {
         uint32_t executed = 0;
-        fox32_err_t error = fox32_resume(&vm, 256, &executed);
+        fox32_err_t error = fox32_resume(&vm, 65535, &executed);
         if (error != FOX32_ERR_OK) {
             PrintHexByte(0, 22, error);
             PrintHexLong(0, 23, vm.pointer_instr);
