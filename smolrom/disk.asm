@@ -1,6 +1,6 @@
 ; disk routines
 
-const TEMP_SECTOR_BUF: 0x00010000
+const TEMP_SECTOR_BUF: 0x00000600
 
 ; read a sector into the specified memory buffer
 ; inputs:
