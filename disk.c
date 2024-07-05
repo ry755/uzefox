@@ -89,7 +89,3 @@ size_t write_disk_from_memory(size_t id) {
     SetBorderColor(0x00);
     return 512;
 }
-
-DWORD get_fattime(void) {
-    return 0;
-}

@@ -121,39 +121,6 @@ enum {
 #define SIZE16 2
 #define SIZE32 4
 
-/*static uint8_t ptr_get8(const void *ptr) {
-    return *((const uint8_t *) ptr);
-}
-static uint16_t ptr_get16(const void *ptr) {
-    const uint8_t *bytes = ptr;
-    return
-        (((uint16_t) bytes[0])) |
-        (((uint16_t) bytes[1]) << 8);
-}
-static uint32_t ptr_get32(const void *ptr) {
-    const uint8_t *bytes = ptr;
-    return
-        (((uint32_t) bytes[0])) |
-        (((uint32_t) bytes[1]) <<  8) |
-        (((uint32_t) bytes[2]) << 16) |
-        (((uint32_t) bytes[3]) << 24);
-}
-static void ptr_set8(void *ptr, uint8_t value) {
-    *((uint8_t *) ptr) = value;
-}
-static void ptr_set16(void *ptr, uint16_t value) {
-    uint8_t *bytes = ptr;
-    bytes[0] = (uint8_t) (value);
-    bytes[1] = (uint8_t) (value >> 8);
-}
-static void ptr_set32(void *ptr, uint32_t value) {
-    uint8_t *bytes = ptr;
-    bytes[0] = (uint8_t) (value);
-    bytes[1] = (uint8_t) (value >>  8);
-    bytes[2] = (uint8_t) (value >> 16);
-    bytes[3] = (uint8_t) (value >> 24);
-}*/
-
 typedef struct {
     uint8_t opcode;
     uint8_t condition;
@@ -184,6 +151,7 @@ static void vm_init(vm_t *vm) {
     vm->halted = true;
     vm->soft_halted = false;
     vm->mmu_enabled = false;
+    vm->is_consecutive_read = false;
     vm->io_user = NULL;
     vm->io_read = io_read_default;
     vm->io_write = io_write_default;
@@ -245,12 +213,39 @@ static uint8_t vm_read8(vm_t *vm, uint32_t address) {
 
     if (address_end > address) {
         if (address_end <= FOX32_MEMORY_RAM) {
-            u8 bank = 0;
-            if (address > 0xFFFF) {
-                bank = 1;
-                address &= 0xFFFF;
+            if ((!vm->is_consecutive_read) && (address == vm->previous_read_address + 1)) {
+                vm->is_consecutive_read = true;
+                vm->previous_read_address = address;
+                u8 bank = 0;
+                if (address > 0xFFFF) {
+                    bank = 1;
+                    address &= 0xFFFF;
+                }
+                SpiRamSeqReadStart(bank, (u16) address);
+                return SpiRamSeqReadU8();
             }
-            return SpiRamReadU8(bank, (u16) address);
+            if ((vm->is_consecutive_read) && (address == vm->previous_read_address + 1)) {
+                vm->previous_read_address = address;
+                return SpiRamSeqReadU8();
+            }
+            vm->previous_read_address = address;
+            if (vm->is_consecutive_read) {
+                vm->is_consecutive_read = false;
+                SpiRamSeqReadEnd();
+                u8 bank = 0;
+                if (address > 0xFFFF) {
+                    bank = 1;
+                    address &= 0xFFFF;
+                }
+                return SpiRamReadU8(bank, (u16) address);
+            } else {
+                u8 bank = 0;
+                if (address > 0xFFFF) {
+                    bank = 1;
+                    address &= 0xFFFF;
+                }
+                return SpiRamReadU8(bank, (u16) address);
+            }
         }
 
         // special case for the system jump table
@@ -318,6 +313,10 @@ static uint32_t vm_read32(vm_t *vm, uint32_t address) {
 }
 
 static void vm_write8(vm_t *vm, uint32_t address, uint8_t value) {
+    if (vm->is_consecutive_read) {
+        vm->is_consecutive_read = false;
+        SpiRamSeqReadEnd();
+    }
     u8 bank = 0;
     if (address > 0xFFFF) {
         bank = 1;

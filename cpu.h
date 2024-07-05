@@ -60,6 +60,8 @@ typedef struct {
     bool headless;
 
     bool mmu_enabled;
+    bool is_consecutive_read;
+    uint32_t previous_read_address;
 
     jmp_buf panic_jmp;
     fox32_err_t panic_err;
