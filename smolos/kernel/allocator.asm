@@ -22,11 +22,15 @@ initialize_allocator:
 
     mov [total_heap_size], 0
 
-    ; mark this as the only free block
-    add r0, 4
-    mov [r0], 0
-    add r0, 4
-    mov [r0], 0
+    ; link this block to the upper block
+    mov [r0+4], 0
+    mov [r0+8], 0x00020000
+
+    ; set the size of the upper block
+    mov r0, 0x00020000
+    mov [r0], 0x000E0000
+    mov [r0+4], [free_list_head]
+    mov [r0+8], 0
 
     pop r1
     pop r0

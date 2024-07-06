@@ -8,6 +8,7 @@
 #include <spiram.h>
 
 #include "cpu.h"
+#include "disk.h"
 
 #include "smolrom.h"
 
@@ -208,44 +209,58 @@ static uint32_t *vm_findlocal(vm_t *vm, uint8_t local) {
     vm_panic(vm, FOX32_ERR_BADREGISTER);
 }
 
+static uint8_t spi_read8(vm_t *vm, uint32_t address) {
+    if ((!vm->is_consecutive_read) && (address == vm->previous_read_address + 1)) {
+        vm->is_consecutive_read = true;
+        vm->previous_read_address = address;
+        u8 bank = 0;
+        if (address > 0xFFFF) {
+            bank = 1;
+            address &= 0xFFFF;
+        }
+        SpiRamSeqReadStart(bank, (u16) address);
+        return SpiRamSeqReadU8();
+    }
+    if ((vm->is_consecutive_read) && (address == vm->previous_read_address + 1)) {
+        vm->previous_read_address = address;
+        return SpiRamSeqReadU8();
+    }
+    vm->previous_read_address = address;
+    if (vm->is_consecutive_read) {
+        vm->is_consecutive_read = false;
+        SpiRamSeqReadEnd();
+        u8 bank = 0;
+        if (address > 0xFFFF) {
+            bank = 1;
+            address &= 0xFFFF;
+        }
+        return SpiRamReadU8(bank, (u16) address);
+    } else {
+        u8 bank = 0;
+        if (address > 0xFFFF) {
+            bank = 1;
+            address &= 0xFFFF;
+        }
+        return SpiRamReadU8(bank, (u16) address);
+    }
+}
 static uint8_t vm_read8(vm_t *vm, uint32_t address) {
     uint32_t address_end = address + 1;
 
     if (address_end > address) {
         if (address_end <= FOX32_MEMORY_RAM) {
-            if ((!vm->is_consecutive_read) && (address == vm->previous_read_address + 1)) {
-                vm->is_consecutive_read = true;
-                vm->previous_read_address = address;
-                u8 bank = 0;
-                if (address > 0xFFFF) {
-                    bank = 1;
-                    address &= 0xFFFF;
-                }
-                SpiRamSeqReadStart(bank, (u16) address);
-                return SpiRamSeqReadU8();
-            }
-            if ((vm->is_consecutive_read) && (address == vm->previous_read_address + 1)) {
-                vm->previous_read_address = address;
-                return SpiRamSeqReadU8();
-            }
-            vm->previous_read_address = address;
-            if (vm->is_consecutive_read) {
-                vm->is_consecutive_read = false;
-                SpiRamSeqReadEnd();
-                u8 bank = 0;
-                if (address > 0xFFFF) {
-                    bank = 1;
-                    address &= 0xFFFF;
-                }
-                return SpiRamReadU8(bank, (u16) address);
+            // is this page in memory?
+            uint8_t page = address / 4096;
+            uint32_t offset = address % 4096;
+            if (vm->page_is_in_memory_bitmap[page / 8] & (1 << (page % 8))) {
+                // yes! find where it is
+                address = ((uint32_t) vm->page_on_disk_is_at[page] * (uint32_t) 4096) + offset;
             } else {
-                u8 bank = 0;
-                if (address > 0xFFFF) {
-                    bank = 1;
-                    address &= 0xFFFF;
-                }
-                return SpiRamReadU8(bank, (u16) address);
+                // nope! load it into memory
+                load_page_in(vm, page);
+                address = ((uint32_t) vm->page_on_disk_is_at[page] * (uint32_t) 4096) + offset;
             }
+            return spi_read8(vm, address);
         }
 
         // special case for the system jump table
@@ -317,6 +332,19 @@ static void vm_write8(vm_t *vm, uint32_t address, uint8_t value) {
         vm->is_consecutive_read = false;
         SpiRamSeqReadEnd();
     }
+
+    // is this page in memory?
+    uint8_t page = address / 4096;
+    uint32_t offset = address % 4096;
+    if (vm->page_is_in_memory_bitmap[page / 8] & (1 << (page % 8))) {
+        // yes! find where it is
+        address = ((uint32_t) vm->page_on_disk_is_at[page] * (uint32_t) 4096) + offset;
+    } else {
+        // nope! load it into memory
+        load_page_in(vm, page);
+        address = ((uint32_t) vm->page_on_disk_is_at[page] * (uint32_t) 4096) + offset;
+    }
+
     u8 bank = 0;
     if (address > 0xFFFF) {
         bank = 1;

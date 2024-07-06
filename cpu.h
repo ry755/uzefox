@@ -5,8 +5,8 @@
 #include <stdbool.h>
 #include <setjmp.h>
 
-#define FOX32_MEMORY_RAM 0x00020000 // 128 KiB
-#define FOX32_MEMORY_ROM 0x00004000 //  16 KiB
+#define FOX32_MEMORY_RAM 0x00100000 //  1 MiB
+#define FOX32_MEMORY_ROM 0x00004000 // 16 KiB
 #define FOX32_MEMORY_ROM_START 0xF0000000
 
 #define FOX32_POINTER_DEFAULT_INSTR FOX32_MEMORY_ROM_START
@@ -62,6 +62,9 @@ typedef struct {
     bool mmu_enabled;
     bool is_consecutive_read;
     uint32_t previous_read_address;
+    uint8_t page_is_in_memory_bitmap[32];
+    uint8_t physical_memory_bitmap[4];
+    uint8_t page_on_disk_is_at[256];
 
     jmp_buf panic_jmp;
     fox32_err_t panic_err;
